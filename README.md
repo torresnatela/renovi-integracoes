@@ -50,12 +50,16 @@ Três tabelas (`packages/db/src/schema.ts`):
 
 ```bash
 pnpm install
-cp .env.example .env            # preencha DATABASE_URL (Neon)
-pnpm db:generate                # (re)gera SQL de migration a partir do schema
-pnpm db:migrate                 # aplica as migrations no banco
+cp .env.example .env            # preencha DATABASE_URL (Neon) ou use o local do Docker
+pnpm db:up                      # sobe o Postgres no Docker e roda as migrations
 pnpm --filter @renovi/web dev   # http://localhost:3000  (→ /admin)
 pnpm test                       # roda toda a suíte (core + db + web)
 ```
+
+> `pnpm db:up` sobe só o container do banco (`docker compose up -d --wait db`) e
+> aplica as migrations apontando para `localhost:5432`. Para Neon, rode
+> `pnpm db:migrate` com o `DATABASE_URL_UNPOOLED` do Neon. Para (re)gerar SQL a
+> partir do schema: `pnpm db:generate`.
 
 Os testes do `@renovi/db` e do `@renovi/web` usam **PGlite** (Postgres real em
 processo), então **não precisam de banco externo**.
@@ -73,11 +77,8 @@ docker compose up --build
 #   → app em http://localhost:3000  (→ /admin)
 
 # Apenas o banco de dados (rodando o app no host com `pnpm dev`):
-docker compose up db
-#   No .env use:
-#   DATABASE_URL=postgresql://renovi:renovi@localhost:5432/renovi
-#   DATABASE_URL_UNPOOLED=postgresql://renovi:renovi@localhost:5432/renovi
-#   pnpm db:migrate && pnpm --filter @renovi/web dev
+pnpm db:up                       # sobe o Postgres no Docker + aplica as migrations
+pnpm --filter @renovi/web dev    # use DATABASE_URL=postgresql://renovi:renovi@localhost:5432/renovi
 ```
 
 > O banco persiste no volume `pgdata`. Para zerar tudo: `docker compose down -v`.

@@ -13,7 +13,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @renovi/db generate",
-    "db:migrate": "pnpm --filter @renovi/db migrate"
+    "db:migrate": "pnpm --filter @renovi/db migrate",
+    "db:up": "docker compose up -d --wait db && DATABASE_URL_UNPOOLED=postgresql://renovi:renovi@localhost:5432/renovi pnpm db:migrate"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
