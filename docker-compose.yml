@@ -1,0 +1,67 @@
+name: renovi-integracoes
+
+services:
+  # Banco de dados Postgres local (alternativa ao Neon para desenvolvimento).
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: renovi
+      POSTGRES_PASSWORD: renovi
+      POSTGRES_DB: renovi
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U renovi -d renovi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Aplica as migrations do Drizzle no Postgres e encerra (one-shot).
+  migrate:
+    build:
+      context: .
+      target: build
+    environment:
+      DATABASE_URL: postgresql://renovi:renovi@db:5432/renovi
+      DATABASE_URL_UNPOOLED: postgresql://renovi:renovi@db:5432/renovi
+    command: ["pnpm", "--filter", "@renovi/db", "migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Aplicação Next.js (webhook + cron + admin).
+  web:
+    build:
+      context: .
+      target: runner
+    environment:
+      DATABASE_URL: postgresql://renovi:renovi@db:5432/renovi
+      CRON_TICK_MS: "5000"
+      CRON_MAX_RUNTIME_MS: "55000"
+      CRON_BATCH_SIZE: "1"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # Simula o Vercel Cron localmente: chama o endpoint de processamento a cada 60s.
+  # (O endpoint roda em self-loop de ~55s, então a cobertura fica quase contínua.)
+  cron:
+    image: curlimages/curl:8.11.1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "while true; do curl -s http://web:3000/api/cron/process-queue >/dev/null || true; sleep 60; done"
+    depends_on:
+      web:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pgdata:

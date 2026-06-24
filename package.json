@@ -1,0 +1,23 @@
+{
+  "name": "renovi-integracoes",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @renovi/db generate",
+    "db:migrate": "pnpm --filter @renovi/db migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
