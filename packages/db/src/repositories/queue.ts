@@ -38,6 +38,18 @@ export async function enqueue(
   return rows[0] ?? null;
 }
 
+export async function getQueueItemById(
+  db: Database,
+  id: string,
+): Promise<SendQueueItem | null> {
+  const [row] = await db
+    .select()
+    .from(sendQueue)
+    .where(eq(sendQueue.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
 export interface ClaimOptions {
   limit?: number;
   now?: Date;

@@ -14,6 +14,7 @@ import {
 import {
   claimNext,
   enqueue,
+  getQueueItemById,
   listQueue,
   markFailed,
   markSent,
@@ -209,6 +210,20 @@ describe("queue repository", () => {
     }
     expect(last?.attempts).toBe(5);
     expect(last?.status).toBe("failed");
+  });
+
+  it("fetches a queue item by id, or null when missing", async () => {
+    const item = await enqueue(db, {
+      firstName: "A",
+      lastName: "",
+      phone: "+55 (11) 999998888",
+      payload: { nome: "A" },
+    });
+    const found = await getQueueItemById(db, item!.id);
+    expect(found?.id).toBe(item!.id);
+    expect(
+      await getQueueItemById(db, "00000000-0000-0000-0000-000000000000"),
+    ).toBeNull();
   });
 
   it("lists queue items filtered by status", async () => {

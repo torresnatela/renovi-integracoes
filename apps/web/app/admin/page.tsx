@@ -73,6 +73,8 @@ export default function AdminPage() {
   const [name, setName] = useState("BotConversa");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
   const [live, setLive] = useState(true);
   const liveRef = useRef(live);
   liveRef.current = live;
@@ -120,6 +122,31 @@ export default function AdminPage() {
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function resend(id: string) {
+    setResendingId(id);
+    setResendMsg(null);
+    try {
+      const res = await fetch("/api/admin/queue/resend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResendMsg("Reenviado com sucesso ✅");
+      } else if (data.reason === "no_destination") {
+        setResendMsg("Cadastre o link do BotConversa primeiro.");
+      } else if (data.reason === "send_failed") {
+        setResendMsg(`Falha no envio: ${data.error ?? "erro desconhecido"}`);
+      } else {
+        setResendMsg(data.error ?? "Falha ao reenviar.");
+      }
+      await refresh();
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -198,6 +225,9 @@ export default function AdminPage() {
           .map(([k, v]) => `${k}: ${v}`)
           .join("  ·  ")}
       >
+        {resendMsg && (
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>{resendMsg}</p>
+        )}
         <Table
           head={[
             "Criado",
@@ -208,6 +238,7 @@ export default function AdminPage() {
             "Tent.",
             "Enviado",
             "Último erro",
+            "Ações",
           ]}
           rows={queue.map((i) => [
             fmt(i.createdAt),
@@ -218,6 +249,14 @@ export default function AdminPage() {
             String(i.attempts),
             fmt(i.sentAt),
             i.lastError ?? "—",
+            <button
+              key="r"
+              onClick={() => resend(i.id)}
+              disabled={resendingId === i.id}
+              style={smallBtnStyle}
+            >
+              {resendingId === i.id ? "Enviando…" : "Reenviar"}
+            </button>,
           ])}
           empty="Fila vazia."
         />
@@ -348,4 +387,16 @@ const btnStyle: React.CSSProperties = {
   color: "white",
   fontWeight: 600,
   cursor: "pointer",
+};
+
+const smallBtnStyle: React.CSSProperties = {
+  padding: "3px 10px",
+  borderRadius: 6,
+  border: "1px solid var(--accent)",
+  background: "transparent",
+  color: "var(--accent)",
+  fontWeight: 600,
+  fontSize: 12,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
 };
